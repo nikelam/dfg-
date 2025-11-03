@@ -28,7 +28,7 @@
 
         <!-- PHẦN 1: CÁC CHỈ SỐ KPI CHÍNH (THÁNG 10) -->
         <section class="mb-8">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Kết Quả Tổng Quan - Tháng 10</h2>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Phần 1: Kết Quả Tổng Quan - Tháng 10</h2>
             <div id="kpi-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <!-- Các thẻ KPI sẽ được chèn vào đây bằng JavaScript -->
             </div>
@@ -36,7 +36,7 @@
 
         <!-- PHẦN 2: SO SÁNH HIỆU SUẤT (T10 vs T9) -->
         <section class="mb-8">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-100">So Sánh Hiệu Suất (Tháng 10 vs. Tháng 9)</h2>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Phần 2: So Sánh Hiệu Suất (Tháng 10 vs. Tháng 9)</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Biểu đồ 1: So sánh CPL -->
                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -56,9 +56,19 @@
             </div>
         </section>
 
-        <!-- PHẦN 3: PHÂN TÍCH CHI TIẾT CHIẾN DỊCH (THÁNG 10) -->
+        <!-- PHẦN 3: PHÂN TÍCH PHỄU CHUYỂN ĐỔI (LEAD -> SHOW) - BIỂU ĐỒ MỚI -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Phần 3: Phân Tích Phễu Chuyển Đổi (Lead -> Show)</h2>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 class="text-lg font-medium mb-2 text-center text-amber-400">Vấn Đề 2: So Sánh Số Lượng Lead vs. Show Chụp</h3>
+                <p class="text-center text-gray-400 text-sm mb-4">Biểu đồ này cho thấy T10 (cột bên phải) vừa có ít Lead đầu vào hơn, vừa có tỷ lệ rơi rụng (khoảng cách) lớn hơn T9.</p>
+                <div class="h-80 md:h-96"><canvas id="funnelCompareChart"></canvas></div>
+            </div>
+        </section>
+
+        <!-- PHẦN 4: PHÂN TÍCH CHI TIẾT CHIẾN DỊCH (THÁNG 10) -->
         <section>
-            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Phân Tích Chi Tiết Chiến Dịch - Tháng 10</h2>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Phần 4: Phân Tích Chi Tiết Chiến Dịch - Tháng 10</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 <!-- Biểu đồ 4: BIỂU ĐỒ TRÒN (theo yêu cầu của bạn) -->
@@ -109,7 +119,13 @@
             cvRate: { t9: 36.06, t10: 32.56 }
         };
 
-        // Dữ liệu cho Phần 3: Phân tích Chiến dịch
+        // Dữ liệu cho Phần 3: Phân tích phễu
+        const funnelData = {
+            t9: { leads: 355, shows: 128 },
+            t10: { leads: 301, shows: 98 }
+        };
+
+        // Dữ liệu cho Phần 4: Phân tích Chiến dịch
         // Dữ liệu lấy từ các hình ảnh bạn cung cấp
         const campaignData = [
             { name: 'cd nhóm beauty 02/10', cpl: 218739, leads: 2 },
@@ -213,7 +229,47 @@
                 }
             });
 
-            // --- VẼ PHẦN 3: PHÂN TÍCH CHIẾN DỊCH ---
+            // --- VẼ PHẦN 3: BIỂU ĐỒ PHỄU SO SÁNH (LEAD vs SHOW) ---
+            const ctxFunnel = document.getElementById('funnelCompareChart').getContext('2d');
+            new Chart(ctxFunnel, {
+                type: 'bar',
+                data: {
+                    labels: ['Tháng 9 (Tỷ lệ chốt: 36.1%)', 'Tháng 10 (Tỷ lệ chốt: 32.6%)'],
+                    datasets: [
+                        {
+                            label: 'Tổng Lead',
+                            data: [funnelData.t9.leads, funnelData.t10.leads],
+                            backgroundColor: '#3B82F6', // Blue
+                            borderColor: '#1D4ED8',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Tổng Show Chụp',
+                            data: [funnelData.t9.shows, funnelData.t10.shows],
+                            backgroundColor: '#34D399', // Green
+                            borderColor: '#10B981',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#D1D5DB' } },
+                        tooltip: { 
+                            callbacks: { 
+                                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('vi-VN')}` 
+                            } 
+                        }
+                    },
+                    scales: { 
+                        x: { ticks: { color: '#D1D5DB', font: { size: 14 } } },
+                        y: { ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } } 
+                    }
+                }
+            });
+
+            // --- VẼ PHẦN 4: PHÂN TÍCH CHIẾN DỊCH ---
 
             // 4. Biểu đồ tròn - Phân bổ Lead
             // Sắp xếp và nhóm "Khác"
@@ -293,3 +349,4 @@
     </script>
 </body>
 </html>
+
