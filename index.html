@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Báo Cáo Hiệu Suất - Tháng 10</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Sử dụng font Inter cho toàn bộ trang */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Thêm font Inter từ Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- TIÊU ĐỀ -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-center text-cyan-400">Dashboard Hiệu Suất Quảng Cáo</h1>
+            <p class="text-center text-xl text-gray-400">Phân tích Tháng 10 vs. Tháng 9</p>
+        </header>
+
+        <!-- PHẦN 1: CÁC CHỈ SỐ KPI CHÍNH (THÁNG 10) -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Kết Quả Tổng Quan - Tháng 10</h2>
+            <div id="kpi-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <!-- Các thẻ KPI sẽ được chèn vào đây bằng JavaScript -->
+            </div>
+        </section>
+
+        <!-- PHẦN 2: SO SÁNH HIỆU SUẤT (T10 vs T9) -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">So Sánh Hiệu Suất (Tháng 10 vs. Tháng 9)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Biểu đồ 1: So sánh CPL -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-medium mb-2 text-center">Chi Phí / Lead (CPL)</h3>
+                    <div class="h-64 md:h-80"><canvas id="cplCompareChart"></canvas></div>
+                </div>
+                <!-- Biểu đồ 2: So sánh CPA -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-medium mb-2 text-center">Chi Phí / Show (CPA)</h3>
+                    <div class="h-64 md:h-80"><canvas id="cpaCompareChart"></canvas></div>
+                </div>
+                <!-- Biểu đồ 3: So sánh Tỷ lệ chuyển đổi -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-medium mb-2 text-center">Tỷ Lệ Chuyển Đổi (Lead -> Show)</h3>
+                    <div class="h-64 md:h-80"><canvas id="cvRateCompareChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PHẦN 3: PHÂN TÍCH CHI TIẾT CHIẾN DỊCH (THÁNG 10) -->
+        <section>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Phân Tích Chi Tiết Chiến Dịch - Tháng 10</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Biểu đồ 4: BIỂU ĐỒ TRÒN (theo yêu cầu của bạn) -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-medium mb-2 text-center">Phân Bổ Lead Theo Chiến Dịch</h3>
+                    <p class="text-center text-gray-400 text-sm mb-4">(Dựa trên dữ liệu 279 lead từ các chiến dịch đã cung cấp)</p>
+                    <div class="h-80 md:h-96"><canvas id="leadDistributionChart"></canvas></div>
+                </div>
+
+                <!-- Biểu đồ 5: BIỂU ĐỒ QUAN TRỌNG NHẤT -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-medium mb-2 text-center text-yellow-400">Phân Tích CPL: "Mỏ Vàng" vs. "Đốt Tiền"</h3>
+                    <p class="text-center text-gray-400 text-sm mb-4">Sắp xếp từ rẻ nhất (hiệu quả) đến đắt nhất (lãng phí)</p>
+                    <div class="h-80 md:h-96"><canvas id="campaignCplChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // --- Hàm Định Dạng Tiền Tệ (VND) ---
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+        }
+
+        // --- Hàm Định Dạng Phần Trăm ---
+        function formatPercent(value) {
+            return value.toFixed(2) + '%';
+        }
+
+        // --- DỮ LIỆU TỪ BẢNG PHÂN TÍCH ---
+
+        // Dữ liệu cho Phần 1: KPI Cards (Tháng 10)
+        const kpiData = [
+            { label: 'Tổng Chi Tiêu', value: 12337167, format: 'currency', color: 'text-red-400' },
+            { label: 'Tổng Lead', value: 301, format: 'number', color: 'text-blue-400' },
+            { label: 'Tổng Show', value: 98, format: 'number', color: 'text-green-400' },
+            { label: 'CPL (TB)', value: 40987, format: 'currency', color: 'text-red-400' },
+            { label: 'CPA (TB)', value: 125890, format: 'currency', color: 'text-red-500' },
+            { label: 'Tỷ Lệ Chốt Show', value: 32.56, format: 'percent', color: 'text-green-400' }
+        ];
+
+        // Dữ liệu cho Phần 2: So sánh T10 vs T9
+        const comparisonData = {
+            cpl: { t9: 35505, t10: 40987 },
+            cpa: { t9: 98469, t10: 125890 },
+            cvRate: { t9: 36.06, t10: 32.56 }
+        };
+
+        // Dữ liệu cho Phần 3: Phân tích Chiến dịch
+        // Dữ liệu lấy từ các hình ảnh bạn cung cấp
+        const campaignData = [
+            { name: 'cd nhóm beauty 02/10', cpl: 218739, leads: 2 },
+            { name: 'cd qc gđ 12/10 - GĐ2', cpl: 193729, leads: 2 },
+            { name: 'cd qc sn beauty 02/10', cpl: 172809, leads: 1 },
+            { name: 'CD QC 01/09', cpl: 51836, leads: 30 },
+            { name: 'cd qc tn 02/10', cpl: 50324, leads: 18 },
+            { name: 'qc 10 % 06/07', cpl: 46105, leads: 65 },
+            { name: 'cd qc gđ 02/10', cpl: 44786, leads: 8 },
+            { name: 'QC 500k 01/09', cpl: 33675, leads: 46 },
+            { name: 'QC 27/06', cpl: 33580, leads: 104 },
+            { name: 'cd qc gđ 07/10', cpl: 29550, leads: 3 } // "Mỏ vàng" đã tắt
+        ];
+
+        // Chạy script khi DOM đã tải xong
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- VẼ PHẦN 1: KPI CARDS ---
+            const kpiGrid = document.getElementById('kpi-grid');
+            kpiData.forEach(item => {
+                let displayValue;
+                if (item.format === 'currency') displayValue = formatCurrency(item.value);
+                else if (item.format === 'percent') displayValue = formatPercent(item.value);
+                else displayValue = item.value.toLocaleString('vi-VN');
+
+                kpiGrid.innerHTML += `
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg text-center">
+                        <p class="text-sm text-gray-400 font-medium">${item.label}</p>
+                        <p class="text-2xl font-bold ${item.color}">${displayValue}</p>
+                    </div>
+                `;
+            });
+
+            // --- VẼ PHẦN 2: BIỂU ĐỒ SO SÁNH ---
+            const ctxCPL = document.getElementById('cplCompareChart').getContext('2d');
+            new Chart(ctxCPL, {
+                type: 'bar',
+                data: {
+                    labels: ['Tháng 9 (Tốt)', 'Tháng 10 (Kém)'],
+                    datasets: [{
+                        label: 'Chi Phí / Lead',
+                        data: [comparisonData.cpl.t9, comparisonData.cpl.t10],
+                        backgroundColor: ['#34D399', '#F87171'], // Xanh, Đỏ
+                        borderColor: ['#10B981', '#EF4444'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    plugins: { legend: { display: false },
+                        tooltip: { callbacks: { label: (ctx) => formatCurrency(ctx.raw) } }
+                    },
+                    scales: { x: { ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } },
+                              y: { ticks: { color: '#D1D5DB' } } }
+                }
+            });
+
+            const ctxCPA = document.getElementById('cpaCompareChart').getContext('2d');
+            new Chart(ctxCPA, {
+                type: 'bar',
+                data: {
+                    labels: ['Tháng 9 (Tốt)', 'Tháng 10 (Kém)'],
+                    datasets: [{
+                        label: 'Chi Phí / Show',
+                        data: [comparisonData.cpa.t9, comparisonData.cpa.t10],
+                        backgroundColor: ['#34D399', '#F87171'],
+                        borderColor: ['#10B981', '#EF4444'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    plugins: { legend: { display: false },
+                        tooltip: { callbacks: { label: (ctx) => formatCurrency(ctx.raw) } }
+                    },
+                    scales: { x: { ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } },
+                              y: { ticks: { color: '#D1D5DB' } } }
+                }
+            });
+
+            const ctxCVRate = document.getElementById('cvRateCompareChart').getContext('2d');
+            new Chart(ctxCVRate, {
+                type: 'bar',
+                data: {
+                    labels: ['Tháng 9 (Tốt)', 'Tháng 10 (Kém)'],
+                    datasets: [{
+                        label: 'Tỷ Lệ Chuyển Đổi',
+                        data: [comparisonData.cvRate.t9, comparisonData.cvRate.t10],
+                        backgroundColor: ['#34D399', '#F87171'],
+                        borderColor: ['#10B981', '#EF4444'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    plugins: { legend: { display: false },
+                        tooltip: { callbacks: { label: (ctx) => formatPercent(ctx.raw) } }
+                    },
+                    scales: { x: { ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } },
+                              y: { ticks: { color: '#D1D5DB' } } }
+                }
+            });
+
+            // --- VẼ PHẦN 3: PHÂN TÍCH CHIẾN DỊCH ---
+
+            // 4. Biểu đồ tròn - Phân bổ Lead
+            // Sắp xếp và nhóm "Khác"
+            const sortedByLeads = [...campaignData].sort((a, b) => b.leads - a.leads);
+            const top5Campaigns = sortedByLeads.slice(0, 5);
+            const otherLeads = sortedByLeads.slice(5).reduce((acc, c) => acc + c.leads, 0);
+            
+            const leadDistLabels = [...top5Campaigns.map(c => c.name), 'Các chiến dịch khác'];
+            const leadDistData = [...top5Campaigns.map(c => c.leads), otherLeads];
+
+            const ctxLeadDist = document.getElementById('leadDistributionChart').getContext('2d');
+            new Chart(ctxLeadDist, {
+                type: 'doughnut', // Biểu đồ tròn
+                data: {
+                    labels: leadDistLabels,
+                    datasets: [{
+                        label: 'Số Lead',
+                        data: leadDistData,
+                        backgroundColor: [
+                            '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#D1D5DB' } },
+                        tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} lead` } }
+                    }
+                }
+            });
+
+            // 5. Biểu đồ ngang - Phân tích CPL
+            // Sắp xếp theo CPL từ thấp đến cao
+            const sortedByCPL = [...campaignData].sort((a, b) => a.cpl - b.cpl);
+            const cplLabels = sortedByCPL.map(c => c.name);
+            const cplData = sortedByCPL.map(c => c.cpl);
+
+            // Tạo màu sắc (Xanh = rẻ, Đỏ = đắt)
+            const cplColors = cplData.map(cpl => {
+                if (cpl < 35000) return '#34D399'; // Rất tốt
+                if (cpl < 50000) return '#F59E0B'; // Chấp nhận được
+                if (cpl < 100000) return '#F87171'; // Cao
+                return '#EF4444'; // Rất cao (Đốt tiền)
+            });
+
+            const ctxCampaignCPL = document.getElementById('campaignCplChart').getContext('2d');
+            new Chart(ctxCampaignCPL, {
+                type: 'bar',
+                data: {
+                    labels: cplLabels,
+                    datasets: [{
+                        label: 'Chi Phí / Lead (CPL)',
+                        data: cplData,
+                        backgroundColor: cplColors,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    indexAxis: 'y', // Đây là key để tạo biểu đồ ngang
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (ctx) => ` CPL: ${formatCurrency(ctx.raw)}` } }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#9CA3AF', callback: (val) => (val/1000) + 'k' }, 
+                            grid: { color: '#374151' } 
+                        },
+                        y: { ticks: { color: '#D1D5DB' } }
+                    }
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
